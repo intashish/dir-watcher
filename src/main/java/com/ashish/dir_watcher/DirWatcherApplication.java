@@ -5,42 +5,37 @@ import java.nio.file.Paths;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
+@EnableScheduling
 public class DirWatcherApplication {
 
 	@Bean
 	public static Path directoryPath() {
-		return Paths.get("C:/Users/Ashish/OneDrive/Desktop/Dir_monitor");
-	}
-	@Bean
-	public static Services getService() {
-		return new Services();
+		return Paths.get("D:/Test");
 	}
 
-	@Bean
-	public static BatchSyncEvent startBatchEvent() throws Exception {
-		return new BatchSyncEvent(directoryPath(), getService());
-	}
-
-	@Bean
-	public ScheduledExecutorService scheduledExecutorService() {
-		// You can configure the thread pool size as needed
-		return Executors.newScheduledThreadPool(1);
-	}
+	@Autowired
+	public BatchSyncEvent startBatchEvent;
 
 	public static void main(String[] args) {
 		SpringApplication.run(DirWatcherApplication.class, args);
+	}
 
+	@PostConstruct
+	public void init() {
+		System.out.println("All beans created. Calling init method");
 		try {
-			startBatchEvent().startWatchService();
+			startBatchEvent.startWatchService();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
-
 }

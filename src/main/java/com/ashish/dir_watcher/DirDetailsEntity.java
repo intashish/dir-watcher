@@ -2,13 +2,20 @@ package com.ashish.dir_watcher;
 
 import java.nio.file.Path;
 
+import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.stereotype.Component;
 
 @Document(collection = "file_details")
-@Component
+// @Component
+@Getter
+@Setter
+@ToString
 public class DirDetailsEntity {
 
 	@Id
@@ -18,18 +25,20 @@ public class DirDetailsEntity {
 //	private String previous;
 	private String current;
 
-	public DirDetailsEntity(Path path) {
-		super();
-//		this.filename = filename;
-		this.path = path;
-	}
-
 	public ObjectId getId() {
 		return id;
 	}
 
 	public void setId(ObjectId id) {
 		this.id = id;
+	}
+
+	public Path getFilename() {
+		return filename;
+	}
+
+	public void setFilename(Path filename) {
+		this.filename = filename;
 	}
 
 	public Path getPath() {
@@ -40,24 +49,7 @@ public class DirDetailsEntity {
 		this.path = path;
 	}
 
-	public Path getFilename() {
-		return filename;
-	}
-
-	public void setFilename(Path fileName) {
-		this.filename = fileName;
-	}
-
-//	public String getPrevious() {
-//		return previous;
-//	}
-//
-//	public void setPrevious(String previous) {
-//		this.previous = previous;
-//	}
-
 	public String getCurrent() {
-		toString();
 		return current;
 	}
 
@@ -67,7 +59,11 @@ public class DirDetailsEntity {
 
 	@Override
 	public String toString() {
-		return "DirDetailsEntity [id=" + id + ", filename=" + filename + ", path=" + path + ", current=" + current
-				+ "]";
+		return "DirDetailsEntity{" +
+				"id=" + id +
+				", filename=" + filename +
+				", path=" + path +
+				", current='" + current + '\'' +
+				'}';
 	}
 }

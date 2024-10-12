@@ -14,43 +14,30 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Component
 public class BatchSyncEvent {
 
 	@Autowired
-	private DirDetailRepository dirDetailRepository;
+	public Path path;
+
 	@Autowired
-	private Path path;
-	@Autowired
-	private DirDetailsEntity dirDetailsEntity;
-//	@Autowired
 	private Services services;
-//	@Autowired
-	private final WatchService watchService;
-	private final List<DirDetailsEntity> fileChanges; // List to collect changes
-	@Autowired
-	private final ScheduledExecutorService scheduler;
 
-	public BatchSyncEvent(Path path, Services services) throws Exception {
-		// Initialize watch service
-		this.watchService = FileSystems.getDefault().newWatchService();
-		this.fileChanges = new ArrayList<>();
-		this.scheduler = Executors.newScheduledThreadPool(1);
-		this.path = path;
-		this.services = services;
+	private WatchService watchService;
+	private final List<DirDetailsEntity> fileChanges = new ArrayList<>(); // List to collect changes
 
-		// Register directory for watching
+	@PostConstruct
+	public void initBatchSyncEvent() throws Exception {
+		System.out.println("Testing initBatchSyncEvent");
+
+		watchService = FileSystems.getDefault().newWatchService();
 		path.register(watchService, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_MODIFY,
 				StandardWatchEventKinds.ENTRY_DELETE);
-
-		// Start the watch service to collect changes
-//		startWatchService();
-
-		// Schedule a task to log changes every minute
-		scheduleLogTask();
 	}
 
 	void startWatchService() {
@@ -67,7 +54,9 @@ public class BatchSyncEvent {
 						Path fullPath = dir.resolve(fileName);
 						synchronized (fileChanges) {
 							// Collect the change events
-							DirDetailsEntity entity = new DirDetailsEntity(fullPath);
+							DirDetailsEntity entity = new DirDetailsEntity();
+
+							entity.setPath(fullPath);
 							entity.setFilename(fileName);
 							fileChanges.add(entity);
 							System.out.println("File " + fullPath + " was " + kind.name());
@@ -87,37 +76,40 @@ public class BatchSyncEvent {
 		}).start();
 	}
 
+	@Scheduled(fixedDelay = 10_000)
 	private void scheduleLogTask() {
-		scheduler.scheduleAtFixedRate(() -> {
-			synchronized (fileChanges) {
-				if (!fileChanges.isEmpty()) {
-					System.out.println("Logging file changes for the last minute:");
-					for (DirDetailsEntity entry : fileChanges) {
+		System.out.println("Testing scheduleLogTask");
+		synchronized (fileChanges) {
+			if (!fileChanges.isEmpty()) {
+				System.out.println("Logging file changes for the last minute:");
+				for (DirDetailsEntity entry : fileChanges) {
 
-						System.out.println("file entry ===>" + readFileContent(entry.path));
-						entry.setCurrent(readFileContent(entry.path));
-						System.out.println(entry);
-						try {
-
-							services.saveDirDetails(entry);
-						} catch (Exception e) {
-							System.out.println(e);
-						}
-//						service.saveDirDetails(entry);
-						System.out.println("entry data == " + entry);
+					System.out.println("file entry ===>" + readFileContent(entry.path));
+					entry.setCurrent(readFileContent(entry.path));
+					System.out.println(entry);
+					try {
+						System.out.println("Calling services.saveDirDetails(entry)");
+						services.saveDirDetails(entry);
+					} catch (Exception e) {
+						System.out.println("Error saving details");
+						System.out.println(e);
+						e.printStackTrace();
 					}
-
-					fileChanges.clear(); // Clear the list after logging
-				} else {
-					System.out.println("No file changes detected in the last minute.");
+//						service.saveDirDetails(entry);
+					System.out.println("entry data == " + entry);
 				}
+
+				fileChanges.clear(); // Clear the list after logging
+			} else {
+				System.out.println("No file changes detected in the last minute.");
 			}
-		}, 1, 1, TimeUnit.MINUTES); // Schedule the task to run every minute
+		}
 	}
 
 	// Method to read the content of a file
 	private String readFileContent(Path filePath) {
 		try {
+			System.out.println("readFileContent::filePath: " + filePath);
 			List<String> lines = Files.readAllLines(filePath);
 			return String.join("\n", lines);
 		} catch (IOException e) {
